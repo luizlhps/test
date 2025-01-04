@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  postgresql:
+    image: postgres:17.2-alpine3.20
+    container_name: postgrsql-v17-2
+    restart: unless-stopped
+    shm_size: 128mb
+    volumes:
+      - db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-teste}
+    ports:
+      - ${POSTGRES_PORT:-5432}:5432
+    networks:
+      - connection-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      timeout: 5s
+      retries: 10
+
+  app:
+    depends_on:
+      - postgresql
+    image: luizlhps/teste-tecnico:v1
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/${POSTGRES_DB:-teste}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - ${SPRING_PORT:-8080}:8080
+    networks:
+      - connection-network
+
+networks:
+  connection-network:
+    driver: bridge
+
+volumes:
+  db:
